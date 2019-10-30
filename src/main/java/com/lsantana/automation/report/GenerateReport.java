@@ -3,6 +3,7 @@ package com.lsantana.automation.report;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
+import java.util.Date;
 import java.util.Map;
 
 import org.testng.ITestContext;
@@ -25,9 +26,9 @@ import com.google.gson.Gson;
 
 import io.restassured.response.Response;
 
-public class GenerateReport {
+public class GenerateReport extends EmailManager {
 
-	ExtentReports reports;
+	ExtentReports reporter;
 	ExtentTest testInfo;
 	ExtentHtmlReporter htmlReporter;
 	String message, finalReportPath, documentTitle, reportName;
@@ -53,16 +54,22 @@ public class GenerateReport {
 			}
 
 			htmlReporter = new ExtentHtmlReporter(new File(finalReportPath));
-			htmlReporter.config().setTheme(Theme.STANDARD);
+			htmlReporter.config().setTheme(Theme.DARK);
 			htmlReporter.config().setProtocol(Protocol.HTTPS);
 			htmlReporter.config().setTimeStampFormat("dd/MM/yyyy HH:mm:ss");
 			htmlReporter.config().setEncoding("cp1252");
 			htmlReporter.config().setDocumentTitle(documentTitle);
 			htmlReporter.config().setReportName(documentTitle);
 
-			reports = new ExtentReports();
-			reports.setSystemInfo("Environment", "Prod");
-			reports.attachReporter(htmlReporter);
+			reporter = new ExtentReports();
+			reporter.setSystemInfo("Environment", "Homolog");
+			reporter.setSystemInfo("OS : ", System.getProperty("os.name"));
+			reporter.setSystemInfo("OS Architecture : ", System.getProperty("os.arch"));
+			reporter.setSystemInfo("Java Version : ", System.getProperty("java.version"));
+			reporter.setSystemInfo("User Name : ", System.getProperty("user.name"));
+			reporter.setSystemInfo("Machine Name : ", System.getProperty("machine.name"));
+			reporter.setSystemInfo("IP Address : ", System.getProperty("machine.address"));
+			reporter.attachReporter(htmlReporter);
 
 		} catch (Exception e) {
 			e.getMessage();
@@ -73,7 +80,7 @@ public class GenerateReport {
 	public void beforeTest(Method method) {
 		try {
 			message = String.format("Init test '%s'.", method.getName());
-			testInfo = reports.createTest(method.getName());
+			testInfo = reporter.createTest(method.getName());
 			System.out.println(String.format("\n%s", message));
 
 		} catch (Exception e) {
@@ -112,9 +119,10 @@ public class GenerateReport {
 	@AfterClass
 	public void afterClass() {
 		try {
-			reports.flush();
+			reporter.flush();
 			System.out.println(String.format("\n\nFinish test suite. Report: \n%s\n",
 					Paths.get(finalReportPath).toAbsolutePath().toString()));
+			sendEmail(finalReportPath, "Finish test suite in " + new Date(System.currentTimeMillis()));
 		} catch (Exception e) {
 			e.getMessage();
 		}
